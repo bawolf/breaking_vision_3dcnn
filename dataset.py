@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 import os
 import logging
+import csv
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,9 +23,14 @@ class SimpleVideoDataset(Dataset):
         ])
         
         with open(os.path.join(self.root_dir, data_file), 'r') as f:
-            for line in f:
-                path, label = line.strip().split()
-                self.data.append((path, int(label)))
+            csv_reader = csv.reader(f)
+            for row in csv_reader:
+                if len(row) == 2:
+                    path, label = row
+                    if os.path.exists(path):
+                        self.data.append((path, int(label)))
+                    else:
+                        logger.warning(f"File not found: {path}")
 
     def __len__(self):
         return len(self.data)
@@ -33,13 +39,18 @@ class SimpleVideoDataset(Dataset):
         video_path, label = self.data[idx]
         full_video_path = os.path.join(self.root_dir, video_path)
         
-        # logger.info(f"Loading video: {full_video_path}")
+        if not os.path.exists(full_video_path):
+            raise FileNotFoundError(f"Video file not found: {video_path}")
         
         cap = cv2.VideoCapture(full_video_path)
+        if not cap.isOpened():
+            raise IOError(f"Failed to open video: {full_video_path}")
+            
         frames = []
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # logger.info(f"Video frame count: {frame_count}")
+        if frame_count == 0:
+            raise ValueError(f"No frames found in video: {video_path}")
         
         # If the video has fewer frames than we need, we'll loop the video
         if frame_count < self.num_frames:
@@ -65,9 +76,11 @@ class SimpleVideoDataset(Dataset):
         cap.release()
         
         # If we couldn't get enough frames, we'll duplicate the last frame
+        if len(frames) == 0:
+            raise ValueError(f"Failed to read any frames from video: {video_path}")
+            
         while len(frames) < self.num_frames:
             frames.append(frames[-1])
         
         video = torch.stack(frames, dim=0)
-        # logger.info(f"Processed video tensor shape: {video.shape}")
         return video, label

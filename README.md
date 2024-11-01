@@ -37,7 +37,38 @@ pip install -r requirements.txt
 
 ## Usage
 
-[Add instructions for how to use your code, including example commands for training and testing]
+### Training
+
+
+#### Hyperparameters
+Update the training.py script to take in the correct hyperparameters
+
+- `batch_size`: number of videos per batch
+- `learning_rate`: learning rate for the optimizer
+- `num_epochs`: number of epochs to train for
+- `patience`: number of epochs to wait before early stopping (0 to disable)
+
+Also update the dataset root directory in the training.py script
+- `dataset_root`: root directory of the dataset
+
+Dataset files:
+- `train.csv`: training dataset
+- `val.csv`: validation dataset
+- `test.csv`: test dataset
+
+Format of the dataset files(csv):
+```
+<video_path>, <label>
+<video_path>, <label>
+<video_path>, <label>
+...
+```
+
+#### Training Script
+
+```bash
+python training.py
+```
 
 ## License
 
@@ -46,3 +77,6 @@ pip install -r requirements.txt
 ## Contact
 
 [Add your contact information if you want]
+
+#TODO
+update script to take true csvs instead of weird txt format

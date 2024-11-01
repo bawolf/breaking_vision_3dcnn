@@ -12,6 +12,8 @@ from tqdm import tqdm
 from torch import load as torch_load
 from utils import create_run_directory
 import os
+import json
+from datetime import datetime
 
 # Create a directory for this run
 run_dir = create_run_directory()
@@ -24,17 +26,20 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 # Hyperparameters
-batch_size = 8
+batch_size = 64
 learning_rate = 0.001
 num_epochs = 100
 patience = 10  # for early stopping
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+#Dataset root directory
+dataset_root = "../finetune/3moves_balanced"
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device: {device}")
 
 # Create datasets
-train_dataset = SimpleVideoDataset("train.csv", "../finetune/inputs")
-val_dataset = SimpleVideoDataset("val.csv", "../finetune/inputs")
+train_dataset = SimpleVideoDataset("train.csv", dataset_root)
+val_dataset = SimpleVideoDataset("val.csv", dataset_root)
 
 # Create data loaders
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -59,6 +64,26 @@ with open(csv_path, 'w', newline='') as file:
 
 best_val_loss = float('inf')
 best_model_path = os.path.join(run_dir, 'best_model.pth')
+
+# Save run information
+def save_run_info(run_dir, config):
+    """Save run configuration as JSON"""
+    config_path = os.path.join(run_dir, 'run_config.json')
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=4)
+
+# Create config dictionary
+config = {
+    "batch_size": batch_size,
+    "learning_rate": learning_rate,
+    "num_epochs": num_epochs,
+    "patience": patience,
+    "device": str(device),
+    "dataset_root": dataset_root,
+}
+
+# Save run info
+save_run_info(run_dir, config)
 
 # Function to calculate accuracy
 def calculate_accuracy(outputs, labels):
@@ -141,11 +166,12 @@ for epoch in range(num_epochs):
     # Learning rate scheduling
     scheduler.step(val_loss)
 
-    # # Early stopping
-    # early_stopping(val_loss)
-    # if early_stopping.early_stop:
-    #     logger.info("Early stopping triggered")
-    #     break
+    if patience > 0:
+        # Early stopping
+        early_stopping(val_loss)
+        if early_stopping.early_stop:
+            logger.info("Early stopping triggered")
+            break
 
     # Save the best model
     if val_loss < best_val_loss:
@@ -163,19 +189,3 @@ logger.info("Training finished!")
 final_model_path = os.path.join(run_dir, 'final_model.pth')
 torch.save(model.state_dict(), final_model_path, _use_new_zipfile_serialization=True)
 logger.info(f"Saved final model to {final_model_path}")
-
-# Save run information
-with open(os.path.join(run_dir, 'run_info.txt'), 'w') as f:
-    f.write(f"Batch size: {batch_size}\n")
-    f.write(f"Learning rate: {learning_rate}\n")
-    f.write(f"Number of epochs: {num_epochs}\n")
-    f.write(f"Early stopping patience: {patience}\n")
-    f.write(f"Device: {device}\n")
-
-# Load the best model
-model.load_state_dict(torch_load('best_model.pth', weights_only=True))
-
-# Optionally, print out the model's state dict
-logger.info("Model's state_dict:")
-for param_tensor in model.state_dict():
-    logger.info(f"{param_tensor}\t{model.state_dict()[param_tensor].size()}")

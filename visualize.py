@@ -7,8 +7,15 @@ from torch.utils.data import DataLoader
 import pandas as pd
 import numpy as np
 import os
+import json
 from dataset import SimpleVideoDataset
 from model import Simple3DCNN
+
+def load_run_config(run_dir):
+    """Load run configuration from JSON"""
+    config_path = os.path.join(run_dir, 'run_config.json')
+    with open(config_path, 'r') as f:
+        return json.load(f)
 
 def plot_training_curves(log_file, output_dir):
     data = pd.read_csv(log_file)
@@ -69,13 +76,22 @@ if __name__ == "__main__":
     # Find the most recent run directory
     base_dir = 'outputs'
     run_dirs = [d for d in os.listdir(base_dir) if d.startswith('run_')]
+    if not run_dirs:
+        raise FileNotFoundError("No run directories found")
+    
     latest_run = max(run_dirs)
     run_dir = os.path.join(base_dir, latest_run)
+    print(f"Using run directory: {run_dir}")
+
+    # Load configuration
+    config = load_run_config(run_dir)
+    print("Loaded configuration:")
+    print(json.dumps(config, indent=2))
 
     # Paths
     log_file = os.path.join(run_dir, 'training_log.csv')
     model_path = os.path.join(run_dir, 'best_model.pth')
-    test_csv = "test.csv"
+    test_csv = "test.csv"  # You might want to add this to config as well
     
     # Create a directory for visualization outputs
     vis_dir = os.path.join(run_dir, 'visualization')
@@ -90,9 +106,16 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
     
-    # Create test dataset and dataloader
-    test_dataset = SimpleVideoDataset(test_csv, "../finetune/inputs")
-    test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
+    # Create test dataset and dataloader using config
+    test_dataset = SimpleVideoDataset(
+        data_file=test_csv,
+        root_dir=config['dataset_root']
+    )
+    test_loader = DataLoader(
+        test_dataset, 
+        batch_size=config['batch_size'],  # Use same batch size from config
+        shuffle=False
+    )
     
     # Generate confusion matrix
     cm = generate_confusion_matrix(model, test_loader, device, vis_dir)
