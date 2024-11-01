@@ -1,0 +1,12 @@
+# This project uses:
+# torch==2.5.1 (installed via conda)
+# torchvision (installed via conda)
+# CUDA Version: 12.1
+
+numpy==2.0.1
+matplotlib==3.9.2
+seaborn==0.13.2
+pandas==2.2.3
+opencv-python==4.10.0
+scikit-learn==1.5.2
+tqdm==4.66.6
