@@ -9,11 +9,9 @@ import logging
 import csv
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
-from torch import load as torch_load
 from utils import create_run_directory
 import os
 import json
-from datetime import datetime
 
 # Create a directory for this run
 run_dir = create_run_directory()
@@ -26,13 +24,13 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 # Hyperparameters
-batch_size = 64
-learning_rate = 0.001
+batch_size = 4
+learning_rate = 0.002 * (batch_size / 16)
 num_epochs = 100
-patience = 10  # for early stopping
+patience = 0  # for early stopping
 
 #Dataset root directory
-dataset_root = "../finetune/3moves_balanced"
+dataset_root = "../finetune/3movesotherpeople_test"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device: {device}")

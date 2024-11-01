@@ -113,11 +113,17 @@ if __name__ == "__main__":
     )
     test_loader = DataLoader(
         test_dataset, 
-        batch_size=config['batch_size'],  # Use same batch size from config
+        batch_size=1,
         shuffle=False
     )
     
     # Generate confusion matrix
     cm = generate_confusion_matrix(model, test_loader, device, vis_dir)
+
+        # Calculate and print per-class accuracy
+    per_class_accuracy = cm.diagonal() / cm.sum(axis=1)
+    for class_idx, accuracy in enumerate(per_class_accuracy):
+        print(f"Class {class_idx} accuracy: {accuracy:.2%}")
+    print(f"Overall accuracy: {cm.diagonal().sum() / cm.sum():.2%}")
     
     print(f"Visualization complete! Check the output directory: {vis_dir}")
