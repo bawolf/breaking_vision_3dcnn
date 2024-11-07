@@ -27,24 +27,28 @@ class SimpleVideoDataset(Dataset):
             for row in csv_reader:
                 if len(row) == 2:
                     path, label = row
-                    if os.path.exists(path):
-                        self.data.append((path, int(label)))
+                    full_video_path = self.get_video_path(path)
+
+                    if os.path.exists(full_video_path):
+                        self.data.append((full_video_path, int(label)))
                     else:
-                        logger.warning(f"File not found: {path}")
+                        logger.warning(f"File not found: {full_video_path}")
 
     def __len__(self):
         return len(self.data)
+    
+    def get_video_path(self, relative_path):
+        return os.path.join(self.root_dir, relative_path)
 
     def __getitem__(self, idx):
         video_path, label = self.data[idx]
-        full_video_path = os.path.join(self.root_dir, video_path)
-        
-        if not os.path.exists(full_video_path):
+                
+        if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found: {video_path}")
         
-        cap = cv2.VideoCapture(full_video_path)
+        cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
-            raise IOError(f"Failed to open video: {full_video_path}")
+            raise IOError(f"Failed to open video: {video_path}")
             
         frames = []
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))

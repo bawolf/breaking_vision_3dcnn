@@ -72,16 +72,9 @@ def generate_confusion_matrix(model, data_loader, device, output_dir):
     
     return cm
 
-if __name__ == "__main__":
-    # Find the most recent run directory
-    base_dir = 'outputs'
-    run_dirs = [d for d in os.listdir(base_dir) if d.startswith('run_')]
-    if not run_dirs:
-        raise FileNotFoundError("No run directories found")
-    
-    latest_run = max(run_dirs)
-    run_dir = os.path.join(base_dir, latest_run)
-    print(f"Using run directory: {run_dir}")
+def run_visualization(run_dir):
+    """Main visualization function that can be called from other scripts"""
+    print(f"Running visualization for directory: {run_dir}")
 
     # Load configuration
     config = load_run_config(run_dir)
@@ -91,9 +84,9 @@ if __name__ == "__main__":
     # Paths
     log_file = os.path.join(run_dir, 'training_log.csv')
     model_path = os.path.join(run_dir, 'best_model.pth')
-    test_csv = "test.csv"  # You might want to add this to config as well
+    test_csv = "test.csv"
     
-    # Create a directory for visualization outputs
+    # Create visualization directory
     vis_dir = os.path.join(run_dir, 'visualization')
     os.makedirs(vis_dir, exist_ok=True)
     
@@ -106,7 +99,7 @@ if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
     
-    # Create test dataset and dataloader using config
+    # Create test dataset and dataloader
     test_dataset = SimpleVideoDataset(
         data_file=test_csv,
         root_dir=config['dataset_root']
@@ -120,10 +113,22 @@ if __name__ == "__main__":
     # Generate confusion matrix
     cm = generate_confusion_matrix(model, test_loader, device, vis_dir)
 
-        # Calculate and print per-class accuracy
+    # Calculate and print per-class accuracy
     per_class_accuracy = cm.diagonal() / cm.sum(axis=1)
     for class_idx, accuracy in enumerate(per_class_accuracy):
         print(f"Class {class_idx} accuracy: {accuracy:.2%}")
     print(f"Overall accuracy: {cm.diagonal().sum() / cm.sum():.2%}")
     
     print(f"Visualization complete! Check the output directory: {vis_dir}")
+    return vis_dir
+
+if __name__ == "__main__":
+    # Find the most recent run directory
+    base_dir = 'outputs'
+    run_dirs = [d for d in os.listdir(base_dir) if d.startswith('run_')]
+    if not run_dirs:
+        raise FileNotFoundError("No run directories found")
+    
+    latest_run = max(run_dirs)
+    run_dir = os.path.join(base_dir, latest_run)
+    run_visualization(run_dir)
